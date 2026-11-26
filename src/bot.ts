@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import dotenv from "dotenv";
 
 import { infoCommand } from "./commands/info.js";
+import { requestCommand } from "./commands/request.js";
 import { createLocationCommand } from "./commands/location.js";
 import { textHandler } from "./handlers/text.js";
 import { locations } from "./data/locations.js";
@@ -30,11 +31,12 @@ for (const { command, handler } of locationCommands) {
 }
 
 bot.command("info", infoCommand);
+bot.command("request", requestCommand);
 
 // TEMP: Uncomment only if you need to retrieve the chat ID again.
-// bot.command("chatid", async (ctx) => {
-//   await ctx.reply(`Chat ID: ${ctx.chat.id}`);
-// });
+bot.command("chatid", async (ctx) => {
+  await ctx.reply(`Chat ID: ${ctx.chat.id}`);
+});
 
 bot.on("text", textHandler);
 
@@ -48,6 +50,10 @@ async function startBot() {
       command,
       description,
     })),
+    {
+      command: "request",
+      description: "Я хочу отримувати автоматичні сповіщення",
+    },
   ]);
 
   await bot.launch();

@@ -18,8 +18,18 @@ export function formatLocationWeatherMessage(
   location: Location,
   weather: string,
 ): string {
+  const links = [
+    location.routesMap
+      ? `<a href="${location.routesMap}">🗺 Карта трас</a>`
+      : null,
+    location.cameras
+      ? `<a href="${location.cameras}">📹 Камери</a>`
+      : null,
+  ].filter((link) => link !== null);
+  const locationHeading = `<a href="https://maps.google.com/?q=${location.latitude},${location.longitude}"><b>🏔️ ${location.name}</b></a>`;
+
   return `
-<a href="https://maps.google.com/?q=${location.latitude},${location.longitude}"><b>🏔️ ${location.name}</b></a>
+${locationHeading}${links.length > 0 ? `, ${links.join(", ")}` : ""}
 
 ${weather}
   `.trim();
