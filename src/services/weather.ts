@@ -6,8 +6,8 @@ export async function getWeather(
     "https://api.open-meteo.com/v1/forecast" +
     `?latitude=${latitude}` +
     `&longitude=${longitude}` +
-    "&current=temperature_2m,precipitation,rain,snowfall" +
-    "&hourly=temperature_2m,precipitation,rain,snowfall" +
+    "&current=temperature_2m,precipitation,rain,snowfall,snow_depth" +
+    "&hourly=temperature_2m,precipitation,rain,snowfall,snow_depth" +
     "&daily=snowfall_sum" +
     "&forecast_days=7" +
     "&timezone=Europe/Warsaw";
@@ -56,17 +56,27 @@ export async function getWeather(
     return "Немає";
   }
 
+  function getSnowDepthText(snowDepth: number | null | undefined): string {
+    if (snowDepth == null) {
+      return "Немає даних";
+    }
+
+    return `${Math.round(snowDepth * 100)} см`;
+  }
+
   function buildWeatherBlock(
     temperature: number,
     precipitation: number,
     rain: number,
     snowfall: number,
+    snowDepth: number | null | undefined,
     newSnow: number,
   ): string {
     return `
 🌡 Температура: ${temperature}°C
 🌧 Опади: ${getPrecipitationText(precipitation, rain, snowfall)}
-❄️ Новий сніг за добу: ${newSnow} см
+❄️ Сніговий покрив: ${getSnowDepthText(snowDepth)}
+🌨️ Новий сніг за добу: ${newSnow} см
 `.trim();
   }
 
@@ -76,6 +86,7 @@ export async function getWeather(
       hourly.precipitation[index],
       hourly.rain[index],
       hourly.snowfall[index],
+      hourly.snow_depth[index],
       newSnow,
     );
   }
@@ -85,6 +96,7 @@ export async function getWeather(
     current.precipitation,
     current.rain,
     current.snowfall,
+    current.snow_depth,
     todaySnow,
   );
 
