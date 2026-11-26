@@ -1,10 +1,9 @@
 import { Telegraf } from "telegraf";
 import dotenv from "dotenv";
 
-import { startCommand } from "./commands/start.js";
+import { infoCommand } from "./commands/info.js";
 import { createLocationCommand } from "./commands/location.js";
 import { textHandler } from "./handlers/text.js";
-import { aboutCommand } from "./commands/about.js";
 import { locations } from "./data/locations.js";
 import { startWeatherMonitor } from "./services/weather-monitor.js";
 
@@ -18,7 +17,7 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
-bot.start(startCommand);
+bot.start(infoCommand);
 
 const locationCommands = locations.map((location) => ({
   command: location.command,
@@ -30,7 +29,7 @@ for (const { command, handler } of locationCommands) {
   bot.command(command, handler);
 }
 
-bot.command("about", aboutCommand);
+bot.command("info", infoCommand);
 
 // TEMP: Uncomment only if you need to retrieve the chat ID again.
 // bot.command("chatid", async (ctx) => {
@@ -42,17 +41,13 @@ bot.on("text", textHandler);
 async function startBot() {
   await bot.telegram.setMyCommands([
     {
-      command: "start",
-      description: "Запуск бота",
+      command: "info",
+      description: "Інформація про бота",
     },
     ...locationCommands.map(({ command, description }) => ({
       command,
       description,
     })),
-    {
-      command: "about",
-      description: "Про бота",
-    },
   ]);
 
   await bot.launch();

@@ -4,8 +4,8 @@ import { formatLocationWeatherMessage, getWeatherReport } from "./weather.js";
 
 const CHECK_INTERVAL_HOURS = 5;
 const LOCATION_REQUEST_SPACING_MINUTES = 1;
-const MAX_ALERT_TEMPERATURE_C = -3;
-const MIN_ALERT_SNOW_DEPTH_CM = 5;
+const MAX_ALERT_TEMPERATURE_C = -4;
+const MIN_ALERT_SNOW_DEPTH_CM = 7;
 
 const CHECK_INTERVAL_MS = CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
 const LOCATION_REQUEST_SPACING_MS =
@@ -16,15 +16,15 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function meetsSkiConditions(
+export function meetsSkiConditions(
   current: Awaited<ReturnType<typeof getWeatherReport>>["current"],
 ): boolean {
   const noPrecipitation = current.precipitation === 0;
   const snowOnly =
     current.snowfall !== null &&
     current.snowfall > 0 &&
-    current.rain === 0 &&
-    current.showers === 0;
+    (current.rain === null || current.rain === 0) &&
+    (current.showers === null || current.showers === 0);
 
   return (
     current.temperature !== null &&
