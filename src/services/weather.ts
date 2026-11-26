@@ -3,14 +3,14 @@ export async function getWeather(
   longitude: number
 ): Promise<string> {
   const url =
-  "https://api.open-meteo.com/v1/forecast" +
-  `?latitude=${latitude}` +
-  `&longitude=${longitude}` +
-  "&current=temperature_2m,precipitation,rain,snowfall" +
-  "&hourly=temperature_2m,precipitation,rain,snowfall" +
-  "&daily=snowfall_sum" +
-  "&forecast_days=7" +
-  "&timezone=Europe/Warsaw";
+    "https://api.open-meteo.com/v1/forecast" +
+    `?latitude=${latitude}` +
+    `&longitude=${longitude}` +
+    "&current=temperature_2m,precipitation,rain,snowfall" +
+    "&hourly=temperature_2m,precipitation,rain,snowfall" +
+    "&daily=snowfall_sum" +
+    "&forecast_days=7" +
+    "&timezone=Europe/Warsaw";
 
   const response = await fetch(url);
 
@@ -23,7 +23,10 @@ export async function getWeather(
   const current = data.current;
   const hourly = data.hourly;
   const daily = data.daily;
-  const newSnowToday = daily.snowfall_sum?.[0] ?? 0;
+
+  const todaySnow = daily.snowfall_sum?.[0] ?? 0;
+  const tomorrowSnow = daily.snowfall_sum?.[1] ?? 0;
+  const dayAfterTomorrowSnow = daily.snowfall_sum?.[2] ?? 0;
 
   const observationTime = new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
@@ -54,28 +57,29 @@ export async function getWeather(
   }
 
   function buildWeatherBlock(
-    index: number,
-    snowToday?: number
+    temperature: number,
+    precipitation: number,
+    rain: number,
+    snowfall: number,
+    newSnow: number
   ): string {
-    const temperature = hourly.temperature_2m[index];
-    const precipitation = hourly.precipitation[index];
-    const rain = hourly.rain[index];
-    const snowfall = hourly.snowfall[index];
-
     return `
-  🌡 Температура: ${temperature}°C
-  🌧 Опади: ${getPrecipitationText(
+🌡 Температура: ${temperature}°C
+🌧 Опади: ${getPrecipitationText(
       precipitation,
       rain,
       snowfall
     )}
-  ❄️ Новий сніг за добу: ${snowToday || "0"} см
-  `.trim();
+❄️ Новий сніг за добу: ${newSnow} см
+`.trim();
   }
 
   const nowBlock = buildWeatherBlock(
-    hourly.time.indexOf(current.time),
-    newSnowToday
+    current.temperature_2m,
+    current.precipitation,
+    current.rain,
+    current.snowfall,
+    todaySnow
   );
 
   const tomorrow11 = new Date();
@@ -87,9 +91,11 @@ export async function getWeather(
   dayAfterTomorrow11.setHours(11, 0, 0, 0);
 
   const friday11 = new Date();
+
   while (friday11.getDay() !== 5) {
     friday11.setDate(friday11.getDate() + 1);
   }
+
   friday11.setHours(11, 0, 0, 0);
 
   const formatHour = (date: Date) =>
@@ -113,17 +119,52 @@ export async function getWeather(
     year: "numeric",
   }).format(friday11);
 
+  const fridaySnowIndex = Math.min(
+    daily.snowfall_sum.length - 1,
+    Math.ceil(
+      (friday11.getTime() - new Date().getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+
+  const fridaySnow =
+    daily.snowfall_sum?.[fridaySnowIndex] ?? 0;
+
+  const tomorrowBlock = buildWeatherBlock(
+    hourly.temperature_2m[tomorrowIndex],
+    hourly.precipitation[tomorrowIndex],
+    hourly.rain[tomorrowIndex],
+    hourly.snowfall[tomorrowIndex],
+    tomorrowSnow
+  );
+
+  const dayAfterTomorrowBlock = buildWeatherBlock(
+    hourly.temperature_2m[dayAfterTomorrowIndex],
+    hourly.precipitation[dayAfterTomorrowIndex],
+    hourly.rain[dayAfterTomorrowIndex],
+    hourly.snowfall[dayAfterTomorrowIndex],
+    dayAfterTomorrowSnow
+  );
+
+  const fridayBlock = buildWeatherBlock(
+    hourly.temperature_2m[fridayIndex],
+    hourly.precipitation[fridayIndex],
+    hourly.rain[fridayIndex],
+    hourly.snowfall[fridayIndex],
+    fridaySnow
+  );
+
   return `
 <b>Станом на ${observationTime}</b>
 ${nowBlock}
 
 <b>Завтра 11:00</b>
-${buildWeatherBlock(tomorrowIndex)}
+${tomorrowBlock}
 
 <b>Післязавтра 11:00</b>
-${buildWeatherBlock(dayAfterTomorrowIndex)}
+${dayAfterTomorrowBlock}
 
 <b>${fridayLabel}, 11:00</b>
-${buildWeatherBlock(fridayIndex)}
-    `.trim();
-};
+${fridayBlock}
+`.trim();
+}
