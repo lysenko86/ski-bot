@@ -6,6 +6,7 @@ import { createLocationCommand } from "./commands/location.js";
 import { textHandler } from "./handlers/text.js";
 import { aboutCommand } from "./commands/about.js";
 import { locations } from "./data/locations.js";
+import { startWeatherMonitor } from "./services/weather-monitor.js";
 
 dotenv.config();
 
@@ -31,6 +32,11 @@ for (const { command, handler } of locationCommands) {
 
 bot.command("about", aboutCommand);
 
+// TEMP: Uncomment only if you need to retrieve the chat ID again.
+// bot.command("chatid", async (ctx) => {
+//   await ctx.reply(`Chat ID: ${ctx.chat.id}`);
+// });
+
 bot.on("text", textHandler);
 
 async function startBot() {
@@ -52,6 +58,7 @@ async function startBot() {
   await bot.launch();
 
   console.log("Бот запущений ✅");
+  startWeatherMonitor(bot, process.env.ALERT_CHAT_ID);
 }
 
 startBot();

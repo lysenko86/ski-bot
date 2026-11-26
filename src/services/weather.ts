@@ -1,12 +1,39 @@
-export async function getWeather(
+import type { Location } from "../data/locations.js";
+
+export type CurrentWeatherConditions = {
+  temperature: number | null;
+  precipitation: number | null;
+  rain: number | null;
+  showers: number | null;
+  snowfall: number | null;
+  snowDepth: number | null;
+};
+
+export type WeatherReport = {
+  message: string;
+  current: CurrentWeatherConditions;
+};
+
+export function formatLocationWeatherMessage(
+  location: Location,
+  weather: string,
+): string {
+  return `
+<a href="https://maps.google.com/?q=${location.latitude},${location.longitude}"><b>🏔️ ${location.name}</b></a>
+
+${weather}
+  `.trim();
+}
+
+export async function getWeatherReport(
   latitude: number,
   longitude: number,
-): Promise<string> {
+): Promise<WeatherReport> {
   const url =
     "https://api.open-meteo.com/v1/forecast" +
     `?latitude=${latitude}` +
     `&longitude=${longitude}` +
-    "&current=temperature_2m,precipitation,rain,snowfall,snow_depth" +
+    "&current=temperature_2m,precipitation,rain,showers,snowfall,snow_depth" +
     "&hourly=temperature_2m,precipitation,rain,snowfall,snow_depth" +
     "&daily=snowfall_sum" +
     "&forecast_days=7" +
@@ -139,7 +166,7 @@ export async function getWeather(
     inFourDaysSnow,
   );
 
-  return `
+  const message = `
 <b>Станом на ${observationTime}</b>
 ${nowBlock}
 
@@ -152,4 +179,16 @@ ${dayAfterTomorrowBlock}
 <b>${inFourDaysLabel}, 11:00</b>
 ${inFourDaysBlock}
 `.trim();
+
+  return {
+    message,
+    current: {
+      temperature: current.temperature_2m ?? null,
+      precipitation: current.precipitation ?? null,
+      rain: current.rain ?? null,
+      showers: current.showers ?? null,
+      snowfall: current.snowfall ?? null,
+      snowDepth: current.snow_depth ?? null,
+    },
+  };
 }
