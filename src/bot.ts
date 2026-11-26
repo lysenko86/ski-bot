@@ -83,13 +83,16 @@ async function startBot() {
     },
   ]);
 
-  await bot.launch();
-
-  console.log("Бот запущений ✅");
   startWeatherMonitor(bot, process.env.ALERT_CHAT_ID);
+  console.log("Монітор погоди активовано; запускаю бота.");
+
+  await bot.launch();
 }
 
-startBot();
+void startBot().catch((error) => {
+  console.error("Не вдалося запустити бота:", error);
+  process.exit(1);
+});
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
