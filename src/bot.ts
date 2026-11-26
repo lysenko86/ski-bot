@@ -2,11 +2,10 @@ import { Telegraf } from "telegraf";
 import dotenv from "dotenv";
 
 import { startCommand } from "./commands/start.js";
+import { createLocationCommand } from "./commands/location.js";
 import { textHandler } from "./handlers/text.js";
-import { cienkowCommand } from "./commands/cienkow.js";
-import { jasnaCommand } from "./commands/jasna.js";
-import { bialkaCommand } from "./commands/bialka.js";
 import { aboutCommand } from "./commands/about.js";
+import { locations } from "./data/locations.js";
 
 dotenv.config();
 
@@ -20,9 +19,15 @@ const bot = new Telegraf(token);
 
 bot.start(startCommand);
 
-bot.command("cienkow", cienkowCommand);
-bot.command("jasna", jasnaCommand);
-bot.command("bialka", bialkaCommand);
+const locationCommands = locations.map((location) => ({
+  command: location.command,
+  description: `Погода у ${location.name}`,
+  handler: createLocationCommand(location),
+}));
+
+for (const { command, handler } of locationCommands) {
+  bot.command(command, handler);
+}
 
 bot.command("about", aboutCommand);
 
@@ -32,24 +37,16 @@ async function startBot() {
   await bot.telegram.setMyCommands([
     {
       command: "start",
-      description: "Запуск бота"
+      description: "Запуск бота",
     },
-    {
-      command: "cienkow",
-      description: "Погода у Cieńków"
-    },
-    {
-      command: "jasna",
-      description: "Погода у Jasná"
-    },
-    {
-      command: "bialka",
-      description: "Погода у Białka Tatrzańska"
-    },
+    ...locationCommands.map(({ command, description }) => ({
+      command,
+      description,
+    })),
     {
       command: "about",
-      description: "Про бота"
-    }
+      description: "Про бота",
+    },
   ]);
 
   await bot.launch();
