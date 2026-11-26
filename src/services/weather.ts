@@ -96,33 +96,36 @@ export async function getWeather(
   dayAfterTomorrow11.setDate(dayAfterTomorrow11.getDate() + 2);
   dayAfterTomorrow11.setHours(11, 0, 0, 0);
 
-  const fourthDay11 = new Date();
-  fourthDay11.setDate(fourthDay11.getDate() + 3);
-  fourthDay11.setHours(11, 0, 0, 0);
+  const inFourDays11 = new Date();
+  inFourDays11.setDate(inFourDays11.getDate() + 4);
+  inFourDays11.setHours(11, 0, 0, 0);
 
   const getHourlyIndex = (date: Date) =>
     hourly.time.indexOf(`${date.toISOString().slice(0, 13)}:00`);
 
   const tomorrowIndex = getHourlyIndex(tomorrow11);
   const dayAfterTomorrowIndex = getHourlyIndex(dayAfterTomorrow11);
-  const fourthDayIndex = getHourlyIndex(fourthDay11);
+  const inFourDaysIndex = getHourlyIndex(inFourDays11);
 
-  const fourthDayLabel = new Intl.DateTimeFormat("uk-UA", {
+  const inFourDaysLabel = new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(fourthDay11);
+  }).format(inFourDays11);
 
-  const fourthDayDate = fourthDay11.toISOString().slice(0, 10);
-  const fourthDaySnowIndex = daily.time.indexOf(fourthDayDate);
-  const fourthDaySnow = daily.snowfall_sum?.[fourthDaySnowIndex] ?? 0;
+  const inFourDaysDate = inFourDays11.toISOString().slice(0, 10);
+  const inFourDaysSnowIndex = daily.time.indexOf(inFourDaysDate);
+  const inFourDaysSnow = daily.snowfall_sum?.[inFourDaysSnowIndex] ?? 0;
 
   const tomorrowBlock = buildHourlyWeatherBlock(tomorrowIndex, tomorrowSnow);
   const dayAfterTomorrowBlock = buildHourlyWeatherBlock(
     dayAfterTomorrowIndex,
     dayAfterTomorrowSnow,
   );
-  const fourthDayBlock = buildHourlyWeatherBlock(fourthDayIndex, fourthDaySnow);
+  const inFourDaysBlock = buildHourlyWeatherBlock(
+    inFourDaysIndex,
+    inFourDaysSnow,
+  );
 
   return `
 <b>Станом на ${observationTime}</b>
@@ -134,7 +137,7 @@ ${tomorrowBlock}
 <b>Післязавтра 11:00</b>
 ${dayAfterTomorrowBlock}
 
-<b>${fourthDayLabel}, 11:00</b>
-${fourthDayBlock}
+<b>${inFourDaysLabel}, 11:00</b>
+${inFourDaysBlock}
 `.trim();
 }
