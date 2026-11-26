@@ -12,6 +12,11 @@ export type CurrentWeatherConditions = {
 export type WeatherReport = {
   message: string;
   current: CurrentWeatherConditions;
+  periods: {
+    label: string;
+    conditions: CurrentWeatherConditions;
+    message: string;
+  }[];
 };
 
 export function formatLocationWeatherMessage(
@@ -44,7 +49,7 @@ export async function getWeatherReport(
     `?latitude=${latitude}` +
     `&longitude=${longitude}` +
     "&current=temperature_2m,precipitation,rain,showers,snowfall,snow_depth" +
-    "&hourly=temperature_2m,precipitation,rain,snowfall,snow_depth" +
+    "&hourly=temperature_2m,precipitation,rain,showers,snowfall,snow_depth" +
     "&daily=snowfall_sum" +
     "&forecast_days=7" +
     "&timezone=Europe/Warsaw";
@@ -128,6 +133,17 @@ export async function getWeatherReport(
     );
   }
 
+  function getHourlyConditions(index: number): CurrentWeatherConditions {
+    return {
+      temperature: hourly.temperature_2m[index] ?? null,
+      precipitation: hourly.precipitation[index] ?? null,
+      rain: hourly.rain[index] ?? null,
+      showers: hourly.showers[index] ?? null,
+      snowfall: hourly.snowfall[index] ?? null,
+      snowDepth: hourly.snow_depth[index] ?? null,
+    };
+  }
+
   const nowBlock = buildWeatherBlock(
     current.temperature_2m,
     current.precipitation,
@@ -176,29 +192,41 @@ export async function getWeatherReport(
     inFourDaysSnow,
   );
 
-  const message = `
-<b>Станом на ${observationTime}</b>
-${nowBlock}
-
-<b>Завтра 11:00</b>
-${tomorrowBlock}
-
-<b>Післязавтра 11:00</b>
-${dayAfterTomorrowBlock}
-
-<b>${inFourDaysLabel}, 11:00</b>
-${inFourDaysBlock}
-`.trim();
+  const currentConditions: CurrentWeatherConditions = {
+    temperature: current.temperature_2m ?? null,
+    precipitation: current.precipitation ?? null,
+    rain: current.rain ?? null,
+    showers: current.showers ?? null,
+    snowfall: current.snowfall ?? null,
+    snowDepth: current.snow_depth ?? null,
+  };
+  const periods = [
+    {
+      label: `Станом на ${observationTime}`,
+      conditions: currentConditions,
+      message: `<b>Станом на ${observationTime}</b>\n${nowBlock}`,
+    },
+    {
+      label: "Завтра 11:00",
+      conditions: getHourlyConditions(tomorrowIndex),
+      message: `<b>Завтра 11:00</b>\n${tomorrowBlock}`,
+    },
+    {
+      label: "Післязавтра 11:00",
+      conditions: getHourlyConditions(dayAfterTomorrowIndex),
+      message: `<b>Післязавтра 11:00</b>\n${dayAfterTomorrowBlock}`,
+    },
+    {
+      label: `${inFourDaysLabel}, 11:00`,
+      conditions: getHourlyConditions(inFourDaysIndex),
+      message: `<b>${inFourDaysLabel}, 11:00</b>\n${inFourDaysBlock}`,
+    },
+  ];
+  const message = periods.map((period) => period.message).join("\n\n");
 
   return {
     message,
-    current: {
-      temperature: current.temperature_2m ?? null,
-      precipitation: current.precipitation ?? null,
-      rain: current.rain ?? null,
-      showers: current.showers ?? null,
-      snowfall: current.snowfall ?? null,
-      snowDepth: current.snow_depth ?? null,
-    },
+    current: currentConditions,
+    periods,
   };
 }

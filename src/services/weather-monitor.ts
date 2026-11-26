@@ -1,8 +1,12 @@
 import type { Telegraf } from "telegraf";
 import { locations } from "../data/locations.js";
-import { formatLocationWeatherMessage, getWeatherReport } from "./weather.js";
+import {
+  formatLocationWeatherMessage,
+  getWeatherReport,
+  type WeatherReport,
+} from "./weather.js";
 
-const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 5 hours in milliseconds
+const CHECK_INTERVAL_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 const LOCATION_REQUEST_SPACING_MINUTES = 1;
 const MAX_ALERT_TEMPERATURE_C = -4;
 const MIN_ALERT_SNOW_DEPTH_CM = 7;
@@ -31,6 +35,12 @@ export function meetsSkiConditions(
     (noPrecipitation || snowOnly) &&
     current.snowDepth !== null &&
     current.snowDepth >= MIN_ALERT_SNOW_DEPTH_METERS
+  );
+}
+
+export function getSkiConditionPeriods(report: WeatherReport) {
+  return report.periods.filter((period) =>
+    meetsSkiConditions(period.conditions),
   );
 }
 
@@ -68,15 +78,19 @@ export function startWeatherMonitor(
             location.longitude,
           );
 
-          if (!meetsSkiConditions(report.current)) {
+          const matchingPeriods = getSkiConditionPeriods(report);
+
+          if (matchingPeriods.length === 0) {
             continue;
           }
 
-          await bot.telegram.sendMessage(
-            destination,
-            formatLocationWeatherMessage(location, report.message),
-            { parse_mode: "HTML" },
-          );
+          for (const period of matchingPeriods) {
+            await bot.telegram.sendMessage(
+              destination,
+              formatLocationWeatherMessage(location, period.message),
+              { parse_mode: "HTML" },
+            );
+          }
         } catch (error) {
           console.error(`Weather check failed for ${location.name}:`, error);
         }
