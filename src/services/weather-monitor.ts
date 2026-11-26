@@ -6,7 +6,7 @@ import {
   type WeatherReport,
 } from "./weather.js";
 
-const CHECK_INTERVAL_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 hours in milliseconds
 const LOCATION_REQUEST_SPACING_MINUTES = 1;
 const MAX_ALERT_TEMPERATURE_C = -4;
 const MIN_ALERT_SNOW_DEPTH_CM = 7;
