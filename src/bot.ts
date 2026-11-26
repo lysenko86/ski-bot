@@ -34,9 +34,9 @@ bot.command("info", infoCommand);
 bot.command("request", requestCommand);
 
 // TEMP: Uncomment only if you need to retrieve the chat ID again.
-bot.command("chatid", async (ctx) => {
-  await ctx.reply(`Chat ID: ${ctx.chat.id}`);
-});
+// bot.command("chatid", async (ctx) => {
+//   await ctx.reply(`Chat ID: ${ctx.chat.id}`);
+// });
 
 bot.on("text", textHandler);
 
