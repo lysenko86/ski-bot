@@ -1,112 +1,33 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type DailyCommandCounts = Record<string, Record<string, number>>;
 
-const DATA_FILE = join(process.cwd(), ".data", "analytics.json");
-const TEMP_FILE = `${DATA_FILE}.tmp`;
 const TIME_ZONE = "Europe/Warsaw";
+let supabase: SupabaseClient | undefined;
 
-let dailyCounts: DailyCommandCounts | undefined;
-let loadPromise: Promise<void> | undefined;
-let writeQueue: Promise<void> = Promise.resolve();
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isDailyCommandCounts(value: unknown): value is DailyCommandCounts {
-  if (!isRecord(value)) {
-    return false;
+function getSupabaseClient(): SupabaseClient {
+  if (supabase) {
+    return supabase;
   }
 
-  return Object.entries(value).every(([date, commands]) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isRecord(commands)) {
-      return false;
-    }
+  const url = process.env.SUPABASE_URL?.trim();
+  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
 
-    return Object.entries(commands).every(
-      ([command, count]) =>
-        /^[a-z0-9_]+$/.test(command) &&
-        typeof count === "number" &&
-        Number.isSafeInteger(count) &&
-        count >= 0,
+  if (!url || !secretKey) {
+    throw new Error(
+      "SUPABASE_URL and SUPABASE_SECRET_KEY must be configured to use analytics.",
     );
-  });
-}
-
-function isMissingFileError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ENOENT"
-  );
-}
-
-async function loadCounts(): Promise<void> {
-  let contents: string;
-
-  try {
-    contents = await readFile(DATA_FILE, "utf8");
-  } catch (error) {
-    if (isMissingFileError(error)) {
-      dailyCounts = {};
-      return;
-    }
-
-    throw error;
   }
 
-  const parsed: unknown = JSON.parse(contents);
-
-  if (!isDailyCommandCounts(parsed)) {
-    throw new Error(`Invalid analytics data in ${DATA_FILE}`);
-  }
-
-  dailyCounts = parsed;
-}
-
-async function ensureLoaded(): Promise<void> {
-  if (!loadPromise) {
-    loadPromise = loadCounts();
-  }
-
-  await loadPromise;
-}
-
-async function persistCounts(): Promise<void> {
-  if (!dailyCounts) {
-    throw new Error("Analytics data has not been loaded");
-  }
-
-  const snapshot = `${JSON.stringify(dailyCounts, null, 2)}\n`;
-  const write = writeQueue.then(async () => {
-    await mkdir(dirname(DATA_FILE), { recursive: true });
-    await writeFile(TEMP_FILE, snapshot, "utf8");
-    await rename(TEMP_FILE, DATA_FILE);
+  supabase = createClient(url, secretKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   });
 
-  writeQueue = write.catch(() => undefined);
-  await write;
-}
-
-export async function recordCommand(command: string): Promise<void> {
-  if (!/^[a-z0-9_]+$/.test(command)) {
-    throw new Error(`Invalid command name for analytics: ${command}`);
-  }
-
-  await ensureLoaded();
-
-  if (!dailyCounts) {
-    throw new Error("Analytics data has not been loaded");
-  }
-
-  const today = getDateKey(new Date());
-  const todayCounts = (dailyCounts[today] ??= {});
-  todayCounts[command] = (todayCounts[command] ?? 0) + 1;
-
-  await persistCounts();
+  return supabase;
 }
 
 function getDateKey(date: Date): string {
@@ -205,12 +126,57 @@ export function formatAnalyticsReport(
   ].join("\n");
 }
 
-export async function getAnalyticsReport(): Promise<string> {
-  await ensureLoaded();
-
-  if (!dailyCounts) {
-    throw new Error("Analytics data has not been loaded");
+export async function recordCommand(command: string): Promise<void> {
+  if (!/^[a-z0-9_]+$/.test(command)) {
+    throw new Error(`Invalid command name for analytics: ${command}`);
   }
 
-  return formatAnalyticsReport(dailyCounts);
+  const { error } = await getSupabaseClient().rpc("record_command_usage", {
+    p_usage_date: getDateKey(new Date()),
+    p_command: command,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function getAnalyticsReport(): Promise<string> {
+  const today = getDateKey(new Date());
+  const dateRange = getRecentDateKeys(today, 30);
+  const oldestDate = dateRange[dateRange.length - 1];
+
+  if (!oldestDate) {
+    throw new Error("Unable to determine analytics date range");
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from("command_usage_daily")
+    .select("usage_date, command, command_count")
+    .gte("usage_date", oldestDate)
+    .lte("usage_date", today);
+
+  if (error) {
+    throw error;
+  }
+
+  const counts: DailyCommandCounts = {};
+
+  for (const row of data) {
+    const commandCount = Number(row.command_count);
+
+    if (
+      typeof row.usage_date !== "string" ||
+      typeof row.command !== "string" ||
+      !Number.isSafeInteger(commandCount) ||
+      commandCount < 0
+    ) {
+      throw new Error("Supabase returned invalid analytics data");
+    }
+
+    const dateCounts = (counts[row.usage_date] ??= {});
+    dateCounts[row.command] = commandCount;
+  }
+
+  return formatAnalyticsReport(counts, today);
 }
