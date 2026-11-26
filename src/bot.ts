@@ -3,8 +3,9 @@ import dotenv from "dotenv";
 
 import { startCommand } from "./commands/start.js";
 import { textHandler } from "./handlers/text.js";
-import { registerButtonActions } from "./actions/buttons.js";
-import { helpCommand } from "./commands/help.js";
+import { cienkowCommand } from "./commands/cienkow.js";
+import { jasnaCommand } from "./commands/jasna.js";
+import { bialkaCommand } from "./commands/bialka.js";
 import { aboutCommand } from "./commands/about.js";
 
 dotenv.config();
@@ -19,13 +20,13 @@ const bot = new Telegraf(token);
 
 bot.start(startCommand);
 
-bot.command("help", helpCommand);
+bot.command("cienkow", cienkowCommand);
+bot.command("jasna", jasnaCommand);
+bot.command("bialka", bialkaCommand);
 
 bot.command("about", aboutCommand);
 
 bot.on("text", textHandler);
-
-registerButtonActions(bot);
 
 async function startBot() {
   await bot.telegram.setMyCommands([
@@ -34,8 +35,16 @@ async function startBot() {
       description: "Запуск бота"
     },
     {
-      command: "help",
-      description: "Допомога"
+      command: "cienkow",
+      description: "Погода у Cieńków"
+    },
+    {
+      command: "jasna",
+      description: "Погода у Jasná"
+    },
+    {
+      command: "bialka",
+      description: "Погода у Białka Tatrzańska"
     },
     {
       command: "about",

@@ -3,3 +3,8 @@ username: ski_2027_bot
 link: https://t.me/ski_2027_bot
 access token: 9031281450:...
 manual Bot API: https://core.telegram.org/bots/api
+
+API Key - AQ....
+Name - Gemini API Key for SkiBot
+Project name - projects/378198372442
+Project number - 378198372442
