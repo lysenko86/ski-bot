@@ -1,35 +1,11 @@
-import { Context } from "telegraf";
-import { askGemini } from "../services/gemini.js";
+import type { Context } from "telegraf";
 
-export const textHandler = async (ctx: Context) => {
-  if (!ctx.message || !("text" in ctx.message)) {
+export const textHandler = async (ctx: Context): Promise<void> => {
+  const message = ctx.message;
+
+  if (!message || !("text" in message) || message.text.startsWith("/")) {
     return;
   }
 
-  const text = ctx.message.text;
-
-  if (text.startsWith("/")) {
-    return;
-  }
-
-  try {
-    await ctx.sendChatAction("typing");
-
-    const answer = await askGemini(text);
-
-    await ctx.reply(answer);
-  } catch (error: any) {
-    console.error(error);
-
-    if (error?.status === 503) {
-      await ctx.reply(
-        "⚠️ Gemini зараз перевантажений. Спробуй ще раз через кілька хвилин."
-      );
-      return;
-    }
-
-    await ctx.reply(
-      "❌ Не вдалося отримати відповідь від Gemini."
-    );
-  }
+  await ctx.reply("Бот працює лише через команди. Скористайся меню.");
 };
