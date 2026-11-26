@@ -96,42 +96,33 @@ export async function getWeather(
   dayAfterTomorrow11.setDate(dayAfterTomorrow11.getDate() + 2);
   dayAfterTomorrow11.setHours(11, 0, 0, 0);
 
-  const friday11 = new Date();
-
-  while (friday11.getDay() !== 5) {
-    friday11.setDate(friday11.getDate() + 1);
-  }
-
-  friday11.setHours(11, 0, 0, 0);
+  const fourthDay11 = new Date();
+  fourthDay11.setDate(fourthDay11.getDate() + 3);
+  fourthDay11.setHours(11, 0, 0, 0);
 
   const getHourlyIndex = (date: Date) =>
     hourly.time.indexOf(`${date.toISOString().slice(0, 13)}:00`);
 
   const tomorrowIndex = getHourlyIndex(tomorrow11);
   const dayAfterTomorrowIndex = getHourlyIndex(dayAfterTomorrow11);
-  const fridayIndex = getHourlyIndex(friday11);
+  const fourthDayIndex = getHourlyIndex(fourthDay11);
 
-  const fridayLabel = new Intl.DateTimeFormat("uk-UA", {
+  const fourthDayLabel = new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(friday11);
+  }).format(fourthDay11);
 
-  const fridaySnowIndex = Math.min(
-    daily.snowfall_sum.length - 1,
-    Math.ceil(
-      (friday11.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-    ),
-  );
-
-  const fridaySnow = daily.snowfall_sum?.[fridaySnowIndex] ?? 0;
+  const fourthDayDate = fourthDay11.toISOString().slice(0, 10);
+  const fourthDaySnowIndex = daily.time.indexOf(fourthDayDate);
+  const fourthDaySnow = daily.snowfall_sum?.[fourthDaySnowIndex] ?? 0;
 
   const tomorrowBlock = buildHourlyWeatherBlock(tomorrowIndex, tomorrowSnow);
   const dayAfterTomorrowBlock = buildHourlyWeatherBlock(
     dayAfterTomorrowIndex,
     dayAfterTomorrowSnow,
   );
-  const fridayBlock = buildHourlyWeatherBlock(fridayIndex, fridaySnow);
+  const fourthDayBlock = buildHourlyWeatherBlock(fourthDayIndex, fourthDaySnow);
 
   return `
 <b>Станом на ${observationTime}</b>
@@ -143,7 +134,7 @@ ${tomorrowBlock}
 <b>Післязавтра 11:00</b>
 ${dayAfterTomorrowBlock}
 
-<b>${fridayLabel}, 11:00</b>
-${fridayBlock}
+<b>${fourthDayLabel}, 11:00</b>
+${fourthDayBlock}
 `.trim();
 }
