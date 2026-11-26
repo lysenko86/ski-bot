@@ -2,12 +2,11 @@ import type { Telegraf } from "telegraf";
 import { locations } from "../data/locations.js";
 import { formatLocationWeatherMessage, getWeatherReport } from "./weather.js";
 
-const CHECK_INTERVAL_HOURS = 5;
+const CHECK_INTERVAL_MS = 10 * 60 * 1000; // 5 hours in milliseconds
 const LOCATION_REQUEST_SPACING_MINUTES = 1;
 const MAX_ALERT_TEMPERATURE_C = -4;
 const MIN_ALERT_SNOW_DEPTH_CM = 7;
 
-const CHECK_INTERVAL_MS = CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
 const LOCATION_REQUEST_SPACING_MS =
   LOCATION_REQUEST_SPACING_MINUTES * 60 * 1000;
 const MIN_ALERT_SNOW_DEPTH_METERS = MIN_ALERT_SNOW_DEPTH_CM / 100;
